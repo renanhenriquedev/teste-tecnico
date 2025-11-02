@@ -1,6 +1,6 @@
 import { Cliente } from '../entities/Cliente';
 import { ClientModel } from '../infra/db/ClientModel';
-import { BaseRepository } from './BaseRepository';
+import { BaseRepository, FindAllParams, Page } from './BaseRepository';
 
 export class ClienteRepository implements BaseRepository<Cliente> {
   async create(entity: Cliente): Promise<Cliente> {
@@ -31,10 +31,28 @@ export class ClienteRepository implements BaseRepository<Cliente> {
     return doc ? mapDocToEntity(doc) : null;
   }
 
-  async findAll(): Promise<Cliente[]> {
-    const docs = await ClientModel.find().lean();
-    return docs.map(mapLeanToEntity);
+// src/repositories/ClienteRepository.ts
+  async findAll(params?: FindAllParams): Promise<Page<Cliente>> {
+    const page = Math.max(1, params?.page ?? 1);
+    const limit = Math.min(100, Math.max(1, params?.limit ?? 20));
+    const sort = params?.sort === 'asc' ? 1 : -1;
+
+    const docs = await ClientModel.find()
+      .sort({ createdAt: sort })
+      .skip((page - 1) * limit)
+      .limit(limit)
+      .lean();
+
+    const items = docs.map(mapLeanToEntity);
+    const total = await ClientModel.countDocuments();
+    return { items, page, limit, total, pages: Math.ceil(total / limit) };
   }
+
+  async delete(id: string): Promise<void> {
+    const r = await ClientModel.findByIdAndDelete(id);
+    if (!r) throw Object.assign(new Error('Cliente não encontrado'), { status: 404 });
+  }
+
 }
 
 function mapDocToEntity(doc: any): Cliente {

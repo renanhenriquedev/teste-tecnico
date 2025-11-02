@@ -1,8 +1,7 @@
-/* --- Begin src\services\MessageQueueService.ts --- */
 import * as amqp from 'amqplib';
 import { env } from '../config/env';
 
-// Usando tipos mais genéricos para evitar conflitos
+// Tipagem relaxada para evitar conflitos locais
 type Connection = any;
 type Channel = any;
 
@@ -10,7 +9,7 @@ export class MessageQueueService {
   private static instance: MessageQueueService;
   private connection: Connection | null = null;
   private channel: Channel | null = null;
-  private isConnecting: boolean = false;
+  private isConnecting = false;
 
   private constructor() {}
 
@@ -24,24 +23,21 @@ export class MessageQueueService {
   private async ensureConnection(): Promise<Connection> {
     if (this.connection) return this.connection;
     if (this.isConnecting) {
-      // Aguarda a conexão em andamento
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await new Promise(r => setTimeout(r, 100));
       return this.ensureConnection();
     }
-
     this.isConnecting = true;
     try {
       const conn = await amqp.connect(env.rabbitUri);
       this.connection = conn;
 
-      // Listeners para eventos de fechamento
       conn.on('close', () => {
         this.connection = null;
         this.channel = null;
         this.isConnecting = false;
       });
 
-      conn.on('error', (err) => {
+      conn.on('error', (err: any) => {
         console.error('[MQ] Erro de conexão:', err);
         this.connection = null;
         this.channel = null;
@@ -57,20 +53,13 @@ export class MessageQueueService {
 
   private async ensureChannel(): Promise<Channel> {
     if (this.channel) return this.channel;
-    
     const conn = await this.ensureConnection();
     const ch = await conn.createChannel();
-    
-    // Configurar a queue
-    await ch.assertQueue('clientes', { 
-      durable: true,
-      // deadLetterExchange: 'dlx', // Opcional: para DLQ
-      // deadLetterRoutingKey: 'clientes.dlq' // Opcional
-    });
-    
+
+    await ch.assertQueue('clientes', { durable: true });
+
     this.channel = ch;
-    
-    // Listeners para eventos do channel
+
     ch.on('close', () => {
       this.channel = null;
     });
@@ -83,16 +72,33 @@ export class MessageQueueService {
     return ch;
   }
 
+  // retry exponencial para estabilizar na subida do RabbitMQ
+  private async connectWithRetry(max = 10, baseMs = 500): Promise<void> {
+    let attempt = 0;
+    // eslint-disable-next-line no-constant-condition
+    while (true) {
+      try {
+        await this.ensureChannel();
+        return;
+      } catch (err) {
+        attempt++;
+        if (attempt >= max) throw err;
+        const wait = Math.min(5000, baseMs * Math.pow(2, attempt));
+        console.error(`[MQ] retry ${attempt}/${max} em ${wait}ms`, err);
+        await new Promise(r => setTimeout(r, wait));
+      }
+    }
+  }
+
   async publish(queue: string, payload: unknown): Promise<boolean> {
     try {
       const ch = await this.ensureChannel();
       const data = Buffer.from(
         typeof payload === 'string' ? payload : JSON.stringify(payload)
       );
-      
-      return ch.sendToQueue(queue, data, { 
-        persistent: true, 
-        contentType: 'application/json' 
+      return ch.sendToQueue(queue, data, {
+        persistent: true,
+        contentType: 'application/json',
       });
     } catch (error) {
       console.error('[MQ] Erro ao publicar:', error);
@@ -106,35 +112,30 @@ export class MessageQueueService {
   }
 
   async consume(
-    queue: string, 
+    queue: string,
     handler: (msg: unknown) => Promise<void> | void
   ): Promise<void> {
-    try {
-      const ch = await this.ensureChannel();
-      
-      await ch.consume(
-        queue,
-        async (msg: amqp.ConsumeMessage | null) => {
-          if (!msg) return;
-          
-          try {
-            const content = msg.content.toString();
-            const parsed = tryParseJSON(content);
-            await handler(parsed ?? content);
-            ch.ack(msg);
-          } catch (err) {
-            console.error('[MQ] Erro ao processar mensagem:', err);
-            ch.nack(msg, false, false); // descarta a mensagem
-          }
-        },
-        { noAck: false }
-      );
-      
-      console.log(`[MQ] Consumindo da fila: ${queue}`);
-    } catch (error) {
-      console.error('[MQ] Erro ao iniciar consumo:', error);
-      throw error;
-    }
+    await this.connectWithRetry(); // estabiliza antes de consumir
+    const ch = await this.ensureChannel();
+
+    await ch.consume(
+      queue,
+      async (msg: amqp.ConsumeMessage | null) => {
+        if (!msg) return;
+        try {
+          const content = msg.content.toString();
+          const parsed = tryParseJSON(content);
+          await handler(parsed ?? content);
+          ch.ack(msg);
+        } catch (err) {
+          console.error('[MQ] Erro ao processar mensagem:', err);
+          ch.nack(msg, false, false); // descarta
+        }
+      },
+      { noAck: false }
+    );
+
+    console.log(`[MQ] Consumindo da fila: ${queue}`);
   }
 
   async disconnect(): Promise<void> {
@@ -146,7 +147,7 @@ export class MessageQueueService {
     } catch (error) {
       console.error('[MQ] Erro ao fechar channel:', error);
     }
-    
+
     try {
       if (this.connection) {
         await this.connection.close();
@@ -155,7 +156,7 @@ export class MessageQueueService {
     } catch (error) {
       console.error('[MQ] Erro ao fechar connection:', error);
     }
-    
+
     this.isConnecting = false;
   }
 
@@ -171,5 +172,3 @@ function tryParseJSON(s: string): unknown {
     return s;
   }
 }
-
-/* --- End src\services\MessageQueueService.ts --- */

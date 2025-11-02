@@ -17,8 +17,11 @@ export class ClienteController {
     return res.json(out);
   }
 
-  async listAll(_req: Request, res: Response): Promise<Response> {
-    const out = await this.useCase.getAllClientes();
+  async listAll(req: Request, res: Response): Promise<Response> {
+    const page = Number(req.query.page ?? 1);
+    const limit = Number(req.query.limit ?? 20);
+    const sort = (req.query.sort as 'asc'|'desc') ?? 'desc';
+    const out = await this.useCase.getAllClientes(page, limit, sort);
     return res.json(out);
   }
 
@@ -27,5 +30,11 @@ export class ClienteController {
     const { nome, email, telefone } = req.body;
     const out = await this.useCase.updateCliente(id, nome, email, telefone);
     return res.json(out);
+  }
+
+  async remove(req: Request, res: Response): Promise<Response> {
+    const { id } = req.params;
+    await this.useCase.deleteCliente(id);
+    return res.status(204).send();
   }
 }

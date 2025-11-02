@@ -27,6 +27,8 @@ export function buildApp() {
   app.put('/clientes/:id', validateBody(updateClienteSchema), (req, res) => controller.update(req, res));
   app.get('/clientes/:id', (req, res) => controller.getById(req, res));
   app.get('/clientes', (req, res) => controller.listAll(req, res));
+  app.delete('/clientes/:id', (req, res) => controller.remove(req, res));
+
 
   app.use(errorHandler);
   return app;

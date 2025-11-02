@@ -2,6 +2,7 @@ import { ClienteRepository } from '../repositories/ClienteRepository';
 import { Cliente } from '../entities/Cliente';
 import { MessageQueueService } from '../services/MessageQueueService';
 import { CacheService } from '../services/CacheService';
+import { Page } from '../repositories/BaseRepository';
 
 export class ClienteUseCase {
   private readonly repo: ClienteRepository;
@@ -37,7 +38,13 @@ export class ClienteUseCase {
     return found;
   }
 
-  async getAllClientes(): Promise<Cliente[]> {
-    return this.repo.findAll();
+  async getAllClientes(page?: number, limit?: number, sort?: 'asc'|'desc'): Promise<Page<Cliente>> {
+    return this.repo.findAll({ page, limit, sort });
   }
+
+  async deleteCliente(id: string): Promise<void> {
+    await this.repo.delete(id);
+    await this.cache.del(`cliente:${id}`);
+  }
+
 }
