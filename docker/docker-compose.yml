@@ -1,0 +1,51 @@
+version: "3.8"
+services:
+  app:
+    build: ..
+    container_name: customer-service-app
+    ports:
+      - "3000:3000"
+    environment:
+      - MONGO_URI=mongodb://mongo:27017/customers
+      - REDIS_URI=redis://redis:6379
+      - RABBIT_URI=amqp://rabbitmq:5672
+    depends_on:
+      - mongo
+      - redis
+      - rabbitmq
+    networks:
+      - backend
+
+  mongo:
+    image: mongo:latest
+    container_name: mongo
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    networks:
+      - backend
+
+  redis:
+    image: redis:alpine
+    container_name: redis
+    ports:
+      - "6379:6379"
+    networks:
+      - backend
+
+  rabbitmq:
+    image: rabbitmq:management
+    container_name: rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    networks:
+      - backend
+
+networks:
+  backend:
+    driver: bridge
+
+volumes:
+  mongo_data:
