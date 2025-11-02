@@ -1,11 +1,9 @@
 import mongoose from 'mongoose';
 import { env } from '../../config/env';
+import { ClientModel } from './ClientModel';
 
 export async function connectMongo() {
-  try {
-    await mongoose.connect(env.mongoUri);
-    console.log('Mongo connected');
-  } catch (err) {
-    console.error('MongoDB connection error:', err);
-  }
+  await mongoose.connect(env.mongoUri);
+  await ClientModel.syncIndexes();
+  console.log('Mongo connected');
 }
