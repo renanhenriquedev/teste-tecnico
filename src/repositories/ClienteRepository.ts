@@ -1,8 +1,8 @@
-// /src/repositories/ClienteRepository.ts
 import { Cliente } from '../entities/Cliente';
 import { ClientModel } from '../infra/db/ClientModel';
+import { BaseRepository } from './BaseRepository';
 
-export class ClienteRepository {
+export class ClienteRepository implements BaseRepository<Cliente> {
   async create(entity: Cliente): Promise<Cliente> {
     const doc = await ClientModel.create({
       nome: entity.nome,        
@@ -12,17 +12,17 @@ export class ClienteRepository {
     return mapDocToEntity(doc);
   }
 
-  async update(id: string, entity: Partial<Cliente>): Promise<Cliente> {
+  async update(id: string, partial: Partial<Cliente>): Promise<Cliente> {
     const doc = await ClientModel.findByIdAndUpdate(
       id,
       {
-        ...(entity.nome !== undefined ? { name: entity.nome } : {}),
-        ...(entity.email !== undefined ? { email: entity.email } : {}),
-        ...(entity.telefone !== undefined ? { phone: entity.telefone } : {}),
+        ...(partial.nome      !== undefined ? { name: partial.nome } : {}),
+        ...(partial.email     !== undefined ? { email: partial.email } : {}),
+        ...(partial.telefone  !== undefined ? { phone: partial.telefone } : {}),
       },
-      { new: true }
+      { new: true, runValidators: true }
     );
-    if (!doc) throw new Error('Cliente não encontrado');
+    if (!doc) throw Object.assign(new Error('Cliente não encontrado'), { status: 404 });
     return mapDocToEntity(doc);
   }
 
