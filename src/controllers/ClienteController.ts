@@ -1,24 +1,31 @@
-// /src/controllers/ClienteController.ts
 import { Request, Response } from 'express';
-import { ClienteUseCase } from '../use-cases/ClienteUseCase';
+import { ClienteUseCase } from '../use-cases/ClienteUseCases';
 
 export class ClienteController {
-  private clienteUseCase: ClienteUseCase;
+  constructor(private readonly useCase: ClienteUseCase) {}
 
-  constructor(clienteUseCase: ClienteUseCase) {
-    this.clienteUseCase = clienteUseCase;
-  }
-
-  // Endpoint para criar cliente
   async create(req: Request, res: Response): Promise<Response> {
     const { nome, email, telefone } = req.body;
+    const out = await this.useCase.createCliente(nome, email, telefone);
+    return res.status(201).json(out);
+  }
 
-    try {
-      // Chama o caso de uso para criar o cliente
-      const cliente = await this.clienteUseCase.createCliente(nome, email, telefone);
-      return res.status(201).json(cliente); // Retorna o cliente criado
-    } catch (error) {
-      return res.status(500).json({ message: error instanceof Error ? error.message : 'An unexpected error occurred' });
-    }
+  async getById(req: Request, res: Response): Promise<Response> {
+    const { id } = req.params;
+    const out = await this.useCase.getClienteById(id);
+    if (!out) return res.status(404).json({ message: 'Cliente não encontrado' });
+    return res.json(out);
+  }
+
+  async listAll(_req: Request, res: Response): Promise<Response> {
+    const out = await this.useCase.getAllClientes();
+    return res.json(out);
+  }
+
+  async update(req: Request, res: Response): Promise<Response> {
+    const { id } = req.params;
+    const { nome, email, telefone } = req.body;
+    const out = await this.useCase.updateCliente(id, nome, email, telefone);
+    return res.json(out);
   }
 }

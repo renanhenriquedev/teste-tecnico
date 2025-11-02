@@ -1,21 +1,43 @@
 import { ClienteRepository } from '../repositories/ClienteRepository';
 import { Cliente } from '../entities/Cliente';
 import { MessageQueueService } from '../services/MessageQueueService';
+import { CacheService } from '../services/CacheService';
 
 export class ClienteUseCase {
-  private clienteRepository: ClienteRepository;
-  private messageQueueService: MessageQueueService;
+  private readonly repo: ClienteRepository;
+  private readonly mq = MessageQueueService.getInstance();
+  private readonly cache = CacheService.getInstance();
 
-  constructor(clienteRepository: ClienteRepository, messageQueueService: MessageQueueService) {
-    this.clienteRepository = clienteRepository;
-    this.messageQueueService = messageQueueService;
+  constructor(clienteRepository: ClienteRepository) {
+    this.repo = clienteRepository;
   }
 
-  // Método para criar um cliente
   async createCliente(nome: string, email: string, telefone: string): Promise<Cliente> {
-      const cliente = new Cliente({ nome, email, telefone });
-      const createdCliente = await this.clienteRepository.create(cliente);
-      await this.messageQueueService.produceMessage('clientes', JSON.stringify(cliente));
-      return createdCliente;
+    const entity = new Cliente({ nome, email, telefone });
+    
+    const created = await this.repo.create(entity);
+    await this.mq.produceMessage('clientes', created);
+    await this.cache.del(`cliente:${created.id}`);
+    return created;
+  }
+
+  async updateCliente(id: string, nome: string, email: string, telefone: string): Promise<Cliente> {
+    const updated = await this.repo.update(id, { nome, email, telefone });
+    await this.cache.set(`cliente:${id}`, updated, 300);
+    return updated;
+  }
+
+  async getClienteById(id: string): Promise<Cliente | null> {
+    const key = `cliente:${id}`;
+    const cached = await this.cache.get<Cliente>(key);
+    if (cached) return cached;
+
+    const found = await this.repo.findById(id);
+    if (found) await this.cache.set(key, found, 300);
+    return found;
+  }
+
+  async getAllClientes(): Promise<Cliente[]> {
+    return this.repo.findAll();
   }
 }

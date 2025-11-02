@@ -15,14 +15,15 @@ app.use(cors());
 app.use(express.json());
 
 const clienteRepository = new ClienteRepository();
-const messageQueueService = MessageQueueService.getInstance();
-const clienteUseCase = new ClienteUseCase(clienteRepository, messageQueueService);
+const clienteUseCase = new ClienteUseCase(clienteRepository);
 const clienteController = new ClienteController(clienteUseCase);
 
 app.get('/health', (_req, res) => res.json({ ok: true }));
 
-// Endpoint para criar cliente
 app.post('/clientes', (req, res) => clienteController.create(req, res));
+app.get('/clientes/:id', (req, res) => clienteController.getById(req, res));
+app.get('/clientes', (req, res) => clienteController.listAll(req, res));
+app.put('/clientes/:id', (req, res) => clienteController.update(req, res));
 
 const PORT = Number(process.env.PORT ?? 3000);
 
