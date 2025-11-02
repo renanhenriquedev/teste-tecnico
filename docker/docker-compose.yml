@@ -1,28 +1,31 @@
-version: "3.8"
 services:
   app:
-    build: ..
+    build:
+      context: ..
+      dockerfile: Dockerfile
     container_name: customer-service-app
     ports:
       - "3000:3000"
+    env_file:
+      - ../.env
     environment:
-      - MONGO_URI=mongodb://mongo:27017/customers
-      - REDIS_URI=redis://redis:6379
-      - RABBIT_URI=amqp://rabbitmq:5672
+      - NODE_ENV=production
     depends_on:
       - mongo
       - redis
       - rabbitmq
+    restart: unless-stopped
     networks:
       - backend
 
   mongo:
-    image: mongo:latest
+    image: mongo:6.0
     container_name: mongo
     ports:
       - "27017:27017"
     volumes:
       - mongo_data:/data/db
+    restart: unless-stopped
     networks:
       - backend
 
@@ -31,6 +34,12 @@ services:
     container_name: redis
     ports:
       - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
     networks:
       - backend
 
@@ -40,6 +49,12 @@ services:
     ports:
       - "5672:5672"
       - "15672:15672"
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "status"]
+      interval: 10s
+      timeout: 10s
+      retries: 5
+    restart: unless-stopped
     networks:
       - backend
 
