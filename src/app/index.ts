@@ -8,12 +8,15 @@ import { ClienteRepository } from '../repositories/ClienteRepository';
 import { validateBody } from '../middlewares/validate';
 import { errorHandler } from '../middlewares/error';
 import { createClienteSchema, updateClienteSchema } from '../validation/cliente.schema';
+import { mountSwagger } from './swagger';
 
 export function buildApp() {
   const app = express();
   app.use(helmet());
   app.use(cors());
   app.use(express.json());
+
+  mountSwagger(app);
 
   const repo = new ClienteRepository();
   const use = new ClienteUseCase(repo);

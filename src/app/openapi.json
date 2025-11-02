@@ -1,0 +1,188 @@
+{
+  "openapi": "3.0.3",
+  "info": { "title": "Customer Service", "version": "1.0.0" },
+  "servers": [{ "url": "http://localhost:3000" }],
+  "paths": {
+    "/health": {
+      "get": { "responses": { "200": { "description": "OK" } } }
+    },
+    "/clientes": {
+      "post": {
+        "summary": "Criar cliente",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/ClienteCreate" },
+              "example": {
+                "nome": "Maria Souza",
+                "email": "maria@example.com",
+                "telefone": "11999998888"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Criado",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Cliente" },
+                "example": {
+                  "id": "672621aa32f83d7b2870ad9b",
+                  "nome": "Maria Souza",
+                  "email": "maria@example.com",
+                  "telefone": "11999998888",
+                  "createdAt": "2025-11-02T12:00:00.000Z",
+                  "updatedAt": "2025-11-02T12:00:00.000Z"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" },
+                "example": {
+                  "message": "Validation error",
+                  "errors": { "email": ["Email inválido"] }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Email já cadastrado",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" },
+                "example": { "message": "Email já cadastrado" }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "summary": "Listar clientes",
+        "responses": {
+          "200": {
+            "description": "Lista",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": { "$ref": "#/components/schemas/Cliente" }
+                },
+                "example": [
+                  {
+                    "id": "672621aa32f83d7b2870ad9b",
+                    "nome": "Maria Souza",
+                    "email": "maria@example.com",
+                    "telefone": "11999998888",
+                    "createdAt": "2025-11-02T12:00:00.000Z",
+                    "updatedAt": "2025-11-02T12:00:00.000Z"
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "/clientes/{id}": {
+      "get": {
+        "summary": "Buscar por ID (com cache)",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" }, "example": "672621aa32f83d7b2870ad9b" }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Cliente" },
+                "example": {
+                  "id": "672621aa32f83d7b2870ad9b",
+                  "nome": "Maria Souza",
+                  "email": "maria@example.com",
+                  "telefone": "11999998888",
+                  "createdAt": "2025-11-02T12:00:00.000Z",
+                  "updatedAt": "2025-11-02T12:00:00.000Z"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid id",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" }, "example": { "message": "Invalid id" } } }
+          },
+          "404": {
+            "description": "Não encontrado",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" }, "example": { "message": "Cliente não encontrado" } } }
+          }
+        }
+      },
+      "put": {
+        "summary": "Atualizar cliente",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" }, "example": "672621aa32f83d7b2870ad9b" }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/ClienteUpdate" },
+              "example": {
+                "nome": "Maria A. Souza",
+                "email": "maria@example.com",
+                "telefone": "11988887777"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Atualizado", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Cliente" } } } },
+          "404": { "description": "Não encontrado", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "ClienteCreate": {
+        "type": "object",
+        "required": ["nome", "email", "telefone"],
+        "properties": {
+          "nome": { "type": "string", "minLength": 2, "example": "Maria Souza" },
+          "email": { "type": "string", "format": "email", "example": "maria@example.com" },
+          "telefone": { "type": "string", "minLength": 8, "example": "11999998888" }
+        }
+      },
+      "ClienteUpdate": {
+        "type": "object",
+        "properties": {
+          "nome": { "type": "string", "example": "Maria A. Souza" },
+          "email": { "type": "string", "format": "email", "example": "maria@example.com" },
+          "telefone": { "type": "string", "example": "11988887777" }
+        }
+      },
+      "Cliente": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "example": "672621aa32f83d7b2870ad9b" },
+          "nome": { "type": "string", "example": "Maria Souza" },
+          "email": { "type": "string", "format": "email", "example": "maria@example.com" },
+          "telefone": { "type": "string", "example": "11999998888" },
+          "createdAt": { "type": "string", "format": "date-time", "example": "2025-11-02T12:00:00.000Z" },
+          "updatedAt": { "type": "string", "format": "date-time", "example": "2025-11-02T12:00:00.000Z" }
+        }
+      },
+      "Error": {
+        "type": "object",
+        "properties": {
+          "message": { "type": "string", "example": "Validation error" },
+          "errors": { "type": "object" }
+        }
+      }
+    }
+  }
+}
