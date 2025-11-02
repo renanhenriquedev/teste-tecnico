@@ -2,6 +2,9 @@ import express from 'express';
 import helmet from 'helmet';
 import cors from 'cors';
 import 'express-async-errors';
+import { liveness, readiness } from './health';
+import morgan from 'morgan';
+import rateLimit from 'express-rate-limit';
 import { ClienteController } from '../controllers/ClienteController';
 import { ClienteUseCase } from '../use-cases/ClienteUseCases';
 import { ClienteRepository } from '../repositories/ClienteRepository';
@@ -10,11 +13,14 @@ import { errorHandler } from '../middlewares/error';
 import { createClienteSchema, updateClienteSchema } from '../validation/cliente.schema';
 import { mountSwagger } from './swagger';
 
+
 export function buildApp() {
   const app = express();
   app.use(helmet());
   app.use(cors());
   app.use(express.json());
+  app.use(morgan('combined'));
+  app.use(rateLimit({ windowMs: 60_000, max: 120 }));
 
   mountSwagger(app);
 
@@ -22,7 +28,8 @@ export function buildApp() {
   const use = new ClienteUseCase(repo);
   const controller = new ClienteController(use);
 
-  app.get('/health', (_req, res) => res.json({ ok: true }));
+  app.get('/health', liveness);
+  app.get('/ready', readiness);
   app.post('/clientes', validateBody(createClienteSchema), (req, res) => controller.create(req, res));
   app.put('/clientes/:id', validateBody(updateClienteSchema), (req, res) => controller.update(req, res));
   app.get('/clientes/:id', (req, res) => controller.getById(req, res));

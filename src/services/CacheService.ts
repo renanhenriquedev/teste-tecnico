@@ -39,4 +39,13 @@ export class CacheService implements ICacheService {
   async del(key: string): Promise<void> {
     await this.client.del(key);
   }
+
+  async ping(): Promise<boolean> {
+    try {
+      const pong = await this.client.ping();
+      return pong === 'PONG';
+    } catch {
+      return false;
+    }
+  }
 }

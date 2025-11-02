@@ -10,10 +10,19 @@ services:
       - ../.env
     environment:
       - NODE_ENV=production
+    healthcheck:
+      # usa o /ready da sua aplicação
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000/ready"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     depends_on:
-      - mongo
-      - redis
-      - rabbitmq
+      mongo:
+        condition: service_started
+      redis:
+        condition: service_healthy    
+      rabbitmq:
+        condition: service_healthy    
     restart: unless-stopped
     networks:
       - backend
