@@ -1,17 +1,16 @@
 services:
   app:
     build:
-      context: ..
+      context: .
       dockerfile: Dockerfile
     container_name: customer-service-app
     ports:
       - "3000:3000"
     env_file:
-      - ../.env
+      - .env/
     environment:
-      - NODE_ENV=production
+      - NODE_ENV=${NODE_ENV}
     healthcheck:
-      # usa o /ready da sua aplicação
       test: ["CMD", "wget", "-qO-", "http://localhost:3000/ready"]
       interval: 10s
       timeout: 5s

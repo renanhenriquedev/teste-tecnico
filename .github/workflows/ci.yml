@@ -1,69 +1,45 @@
-name: ci
+name: Dynadok Test
 
 on:
-  push:
-    branches: [ "**" ]
   pull_request:
-    branches: [ "**" ]
+    paths:
+      - '**.js'
+      - '**.ts'
+      - '**.json'
+      - '**.yml'
+      - 'Dockerfile'
+    branches: [ "main" ]
+
+  push:
+    paths:
+      - '**.js'
+      - '**.ts'
+      - '**.json'
+      - '**.yml'
+      - 'Dockerfile'
+    branches: [ "main" ]
 
 jobs:
-  build-test:
+  tests:
     runs-on: ubuntu-latest
-
-    services:
-      mongo:
-        image: mongo:6.0
-        ports: ["27017:27017"]
-        options: >-
-          --health-cmd="mongosh --quiet --eval 'db.runCommand({ ping: 1 })'"
-          --health-interval=10s
-          --health-timeout=5s
-          --health-retries=10
-      redis:
-        image: redis:alpine
-        ports: ["6379:6379"]
-        options: >-
-          --health-cmd="redis-cli ping"
-          --health-interval=10s
-          --health-timeout=5s
-          --health-retries=10
-      rabbitmq:
-        image: rabbitmq:management
-        ports: ["5672:5672", "15672:15672"]
-        options: >-
-          --health-cmd="rabbitmq-diagnostics -q status"
-          --health-interval=10s
-          --health-timeout=10s
-          --health-retries=10
-
-    env:
-      NODE_ENV: test
-      PORT: 3000
-      MONGO_URI: mongodb://127.0.0.1:27017/customers_test
-      REDIS_URI: redis://127.0.0.1:6379
-      RABBIT_URI: amqp://127.0.0.1:5672
-      REDIS_TTL_SECONDS: 300
+    strategy:
+      matrix:
+        node-version: [22.x]
 
     steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-node@v4
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        
+      - name: Setup Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v3
         with:
-          node-version: 18
-          cache: npm
-
-      - run: npm ci
-
-      - name: Wait for services
-        run: |
-          for i in {1..30}; do
-            (mongosh --quiet --eval "db.runCommand({ ping: 1 })" || exit 1) && \
-            (redis-cli ping | grep -q PONG || exit 1) && \
-            (nc -z 127.0.0.1 5672 || exit 1) && exit 0 || true
-            sleep 2
-          done
-          echo "Services not healthy"; exit 1
-
-      - run: npm test -- --runInBand
-
-      - run: npm run build
+          node-version: ${{ matrix.node-version }}
+          
+      - name: Installing dependencies
+        run: npm i
+        
+      - name: Run unit tests
+        run: npm test
+        
+      - name: Run e2e tests
+        run: npm run test:e2e

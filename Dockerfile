@@ -11,7 +11,7 @@ COPY . .
 RUN npm ci && npm run build
 
 # runner final
-FROM node:18-alpine AS runner
+FROM node:24-alpine AS runner
 WORKDIR /app
 ENV NODE_ENV=production
 # node_modules só de prod

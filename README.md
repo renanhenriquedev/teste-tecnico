@@ -128,7 +128,7 @@ npm test
 Cria alguns clientes no Mongo:
 ```bash
 # dev (ts-node)
-npm run seed:dev
+npm run seed
 
 # production build
 npm run build
@@ -139,7 +139,6 @@ npm run seed
 > ```json
 > {
 >   "scripts": {
->     "seed:dev": "ts-node src/scripts/seed.ts",
 >     "seed": "node dist/scripts/seed.js"
 >   }
 > }
