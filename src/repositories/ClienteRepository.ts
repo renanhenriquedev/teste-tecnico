@@ -31,7 +31,6 @@ export class ClienteRepository implements BaseRepository<Cliente> {
     return doc ? mapDocToEntity(doc) : null;
   }
 
-// src/repositories/ClienteRepository.ts
   async findAll(params?: FindAllParams): Promise<Page<Cliente>> {
     const page = Math.max(1, params?.page ?? 1);
     const limit = Math.min(100, Math.max(1, params?.limit ?? 20));

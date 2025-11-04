@@ -4,7 +4,6 @@ import { MongoMemoryServer } from 'mongodb-memory-server';
 import { buildApp } from '../app/index';
 import { ClientModel } from '../infra/db/ClientModel';
 
-// MOCKS para evitar conexões reais (Redis e MQ)
 jest.mock('../services/CacheService', () => {
   const cache = { get: jest.fn(), set: jest.fn(), del: jest.fn() };
   return { CacheService: { getInstance: () => cache } };

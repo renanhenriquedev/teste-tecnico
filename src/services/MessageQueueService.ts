@@ -1,7 +1,6 @@
 import * as amqp from 'amqplib';
 import { env } from '../config/env';
 
-// Tipagem relaxada para evitar conflitos locais
 type Connection = any;
 type Channel = any;
 
@@ -72,10 +71,8 @@ export class MessageQueueService {
     return ch;
   }
 
-  // retry exponencial para estabilizar na subida do RabbitMQ
   private async connectWithRetry(max = 10, baseMs = 500): Promise<void> {
     let attempt = 0;
-    // eslint-disable-next-line no-constant-condition
     while (true) {
       try {
         await this.ensureChannel();
@@ -115,7 +112,7 @@ export class MessageQueueService {
     queue: string,
     handler: (msg: unknown) => Promise<void> | void
   ): Promise<void> {
-    await this.connectWithRetry(); // estabiliza antes de consumir
+    await this.connectWithRetry();
     const ch = await this.ensureChannel();
 
     await ch.consume(
@@ -129,7 +126,7 @@ export class MessageQueueService {
           ch.ack(msg);
         } catch (err) {
           console.error('[MQ] Erro ao processar mensagem:', err);
-          ch.nack(msg, false, false); // descarta
+          ch.nack(msg, false, false);
         }
       },
       { noAck: false }
